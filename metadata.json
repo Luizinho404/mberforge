@@ -1,0 +1,6 @@
+{
+  "name": "EmberForge",
+  "description": "Um painel desktop futurista para organizar perfis e preferências de jogo, com visual minimalista, alto contraste e estilo cyberpunk sutil. Desenvolvido por kali404.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
