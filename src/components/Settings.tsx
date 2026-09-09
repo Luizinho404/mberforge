@@ -1,0 +1,153 @@
+import { useEmberStore } from '../store';
+import { Card } from './ui/Card';
+
+export function Settings() {
+  const { settings, updateSettings, resetSettings, wipeProfiles } = useEmberStore();
+
+  const handleReset = () => {
+    if (settings.confirmBeforeApply && !window.confirm('Deseja realmente restaurar as configurações originais?')) return;
+    resetSettings();
+  };
+
+  const handleWipe = () => {
+    if (settings.confirmBeforeApply && !window.confirm('CUIDADO: Isso excluirá todos os perfis locais permanentemente. Deseja continuar?')) return;
+    wipeProfiles();
+  };
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto w-full space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Configurações</h2>
+        <p className="text-[var(--color-on-surface-variant)]">Personalize o comportamento do EmberForge.</p>
+      </div>
+      
+      <div className="space-y-6">
+        <Card className="p-6">
+          <h3 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[var(--color-primary)]">tune</span>
+            Geral
+          </h3>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-white">Idioma</h4>
+                <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">Selecione o idioma da interface.</p>
+              </div>
+              <select 
+                className="bg-[var(--color-surface-container-low)] border border-[var(--color-surface-container-high)] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-[var(--color-primary)]/50 transition-colors"
+                value={settings.language}
+                onChange={(e) => updateSettings({ language: e.target.value })}
+              >
+                <option value="pt-BR">Português (Brasil)</option>
+                <option value="en-US">English (US)</option>
+                <option value="es-ES">Español</option>
+              </select>
+            </div>
+            
+            <div className="h-px bg-[var(--color-surface-container-highest)] w-full" />
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-white">Minimizar para a bandeja</h4>
+                <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">Ao fechar, manter o EmberForge rodando em segundo plano.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={settings.minimizeToTray}
+                  onChange={(e) => updateSettings({ minimizeToTray: e.target.checked })}
+                />
+                <div className="w-11 h-6 bg-[var(--color-surface-container-highest)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+              </label>
+            </div>
+
+            <div className="h-px bg-[var(--color-surface-container-highest)] w-full" />
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-white">Confirmar antes de aplicar</h4>
+                <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">Exibir um alerta antes de aplicar cheats ou configurações destrutivas.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer"
+                  checked={settings.confirmBeforeApply}
+                  onChange={(e) => updateSettings({ confirmBeforeApply: e.target.checked })}
+                />
+                <div className="w-11 h-6 bg-[var(--color-surface-container-highest)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+              </label>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[var(--color-tertiary)]">brush</span>
+            Aparência
+          </h3>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-white">Intensidade Visual</h4>
+                <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">Ajusta o nível de brilho, glow e contrastes cyberpunk.</p>
+              </div>
+              <select 
+                className="bg-[var(--color-surface-container-low)] border border-[var(--color-surface-container-high)] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-[var(--color-primary)]/50 transition-colors"
+                value={settings.visualIntensity}
+                onChange={(e) => updateSettings({ visualIntensity: e.target.value as 'low' | 'medium' | 'high' })}
+              >
+                <option value="low">Sutil</option>
+                <option value="medium">Equilibrado</option>
+                <option value="high">Overdrive</option>
+              </select>
+            </div>
+
+            <div className="h-px bg-[var(--color-surface-container-highest)] w-full" />
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-white">Reduzir animações</h4>
+                <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">Desativa transições e efeitos de partículas para economizar recursos.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer"
+                  checked={settings.reduceAnimations}
+                  onChange={(e) => updateSettings({ reduceAnimations: e.target.checked })}
+                />
+                <div className="w-11 h-6 bg-[var(--color-surface-container-highest)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+              </label>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 border-[var(--color-error)]/30 bg-[var(--color-error)]/5">
+          <h3 className="text-lg font-medium text-[var(--color-error)] mb-2 flex items-center gap-2">
+            <span className="material-symbols-outlined">warning</span>
+            Zona de Perigo
+          </h3>
+          <p className="text-sm text-[var(--color-on-surface-variant)] mb-6">
+            Ações irreversíveis que afetam seus dados locais.
+          </p>
+          <div className="flex gap-4">
+            <button 
+              onClick={handleReset}
+              className="px-4 py-2 rounded-lg text-sm bg-transparent text-[var(--color-error)] hover:bg-[var(--color-error)]/10 border border-[var(--color-error)] transition-colors"
+            >
+              Restaurar Padrões
+            </button>
+            <button 
+              onClick={handleWipe}
+              className="px-4 py-2 rounded-lg text-sm bg-[var(--color-error)] text-[var(--color-on-error)] hover:bg-[#ff897d] transition-colors font-medium"
+            >
+              Excluir Todos os Perfis
+            </button>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
