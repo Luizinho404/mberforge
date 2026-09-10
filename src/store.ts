@@ -2,6 +2,33 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { GameProfile, AppSettings, ViewState } from './types';
 
+import { defaultPatcherConfig, PatcherSection } from './lib/patcher-schema';
+
+export type PatcherConfig = Record<string, Record<string, Record<string, unknown>>>;
+const patcherSections: PatcherSection[] = ['player', 'inventory', 'world', 'gameplay'];
+
+function mergePatcherConfig(config: Record<string, unknown>): PatcherConfig {
+  const defaults = defaultPatcherConfig() as PatcherConfig;
+  const merged: PatcherConfig = { ...defaults };
+  for (const section of patcherSections) {
+    const imported = config[section];
+    if (!imported || typeof imported !== 'object' || Array.isArray(imported)) continue;
+    merged[section] = { ...merged[section] };
+    for (const [key, value] of Object.entries(imported as Record<string, unknown>)) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) merged[section][key] = { ...(merged[section][key] ?? {}), ...(value as Record<string, unknown>) };
+    }
+  }
+  if (config.settings && typeof config.settings === 'object' && !Array.isArray(config.settings)) merged.settings = config.settings as Record<string, Record<string, unknown>>;
+  return merged;
+}
+
+function parsePatcherConfig(text: string): PatcherConfig | null {
+  try {
+    const parsed = JSON.parse(text.replace(/\\(?!["\\/bfnrtu])/g, '\\\\')) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? mergePatcherConfig(parsed as Record<string, unknown>) : null;
+  } catch { return null; }
+}
+
 interface EmberStore {
   view: ViewState;
   setView: (view: ViewState) => void;
@@ -18,6 +45,12 @@ interface EmberStore {
   importProfile: (jsonString: string) => boolean;
   updateProfileSettings: (id: string, settings: Record<string, any>) => void;
   wipeProfiles: () => void;
+
+  patcherConfig: PatcherConfig;
+  updatePatcherOption: (section: PatcherSection, key: string, values: Record<string, unknown>) => void;
+  importPatcherConfig: (text: string) => boolean;
+  exportPatcherConfig: () => string;
+
 
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -135,6 +168,20 @@ export const useEmberStore = create<EmberStore>()(
       })),
 
       wipeProfiles: () => set({ profiles: [] }),
+
+
+
+      patcherConfig: defaultPatcherConfig() as PatcherConfig,
+      updatePatcherOption: (section, key, values) => set((state) => ({
+        patcherConfig: { ...state.patcherConfig, [section]: { ...state.patcherConfig[section], [key]: { ...(state.patcherConfig[section]?.[key] ?? {}), ...values } } },
+      })),
+      importPatcherConfig: (text) => {
+        const patcherConfig = parsePatcherConfig(text);
+        if (!patcherConfig) return false;
+        set({ patcherConfig });
+        return true;
+      },
+      exportPatcherConfig: () => JSON.stringify(get().patcherConfig, null, 2),
 
       settings: { ...defaultSettings },
       
