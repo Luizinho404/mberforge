@@ -1,8 +1,11 @@
 import { useEmberStore } from '../store';
 import { Card } from './ui/Card';
+import { ChangeEvent, useRef, useState } from 'react';
 
 export function Settings() {
-  const { settings, updateSettings, resetSettings, wipeProfiles } = useEmberStore();
+  const { settings, updateSettings, resetSettings, wipeProfiles, importPatcherConfig, exportPatcherConfig } = useEmberStore();
+  const configInputRef = useRef<HTMLInputElement>(null);
+  const [configMessage, setConfigMessage] = useState('Nenhum arquivo importado nesta sessão.');
 
   const handleReset = () => {
     if (settings.confirmBeforeApply && !window.confirm('Deseja realmente restaurar as configurações originais?')) return;
@@ -12,6 +15,30 @@ export function Settings() {
   const handleWipe = () => {
     if (settings.confirmBeforeApply && !window.confirm('CUIDADO: Isso excluirá todos os perfis locais permanentemente. Deseja continuar?')) return;
     wipeProfiles();
+  };
+
+
+  const handleConfigImport = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const valid = typeof reader.result === 'string' && importPatcherConfig(reader.result);
+      setConfigMessage(valid ? `Configuração “${file.name}” importada e validada.` : 'Não foi possível validar este arquivo. Selecione um config.json compatível.');
+    };
+    reader.onerror = () => setConfigMessage('Não foi possível ler o arquivo selecionado.');
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const handleConfigExport = () => {
+    const url = URL.createObjectURL(new Blob([exportPatcherConfig()], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'config.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    setConfigMessage('config.json preparado para download. Faça backup do arquivo anterior antes de substituí-lo.');
   };
 
   return (
@@ -80,6 +107,23 @@ export function Settings() {
               </label>
             </div>
           </div>
+        </Card>
+
+
+        <Card className="p-6">
+          <h3 className="text-lg font-medium text-white mb-2 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[var(--color-primary)]">data_object</span>
+            Patcher Mode — config.json
+          </h3>
+          <p className="text-sm text-[var(--color-on-surface-variant)] mb-6">
+            Importe a configuração existente, ajuste as opções no painel e exporte o JSON pronto. Aplicar o patch e reiniciar o jogo continuam sendo etapas externas.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => configInputRef.current?.click()} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-surface-container-low)] border border-[var(--color-surface-container-high)] text-white hover:border-[var(--color-primary)]/50 transition-colors">Importar config.json</button>
+            <button onClick={handleConfigExport} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-110 transition-colors font-medium">Exportar config.json</button>
+            <input ref={configInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleConfigImport} />
+          </div>
+          <p className="text-xs text-[var(--color-on-surface-variant)] mt-4" role="status">{configMessage}</p>
         </Card>
 
         <Card className="p-6">
