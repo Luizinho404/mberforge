@@ -6,6 +6,7 @@ export function Settings() {
   const { settings, updateSettings, resetSettings, wipeProfiles, importPatcherConfig, exportPatcherConfig } = useEmberStore();
   const configInputRef = useRef<HTMLInputElement>(null);
   const [configMessage, setConfigMessage] = useState('Nenhum arquivo importado nesta sessão.');
+  const [originalConfig, setOriginalConfig] = useState<string | null>(null);
 
   const handleReset = () => {
     if (settings.confirmBeforeApply && !window.confirm('Deseja realmente restaurar as configurações originais?')) return;
@@ -23,22 +24,30 @@ export function Settings() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const valid = typeof reader.result === 'string' && importPatcherConfig(reader.result);
-      setConfigMessage(valid ? `Configuração “${file.name}” importada e validada.` : 'Não foi possível validar este arquivo. Selecione um config.json compatível.');
+      const source = typeof reader.result === 'string' ? reader.result : '';
+      const valid = Boolean(source) && importPatcherConfig(source);
+      if (valid) setOriginalConfig(source);
+      setConfigMessage(valid ? `Configuração “${file.name}” importada e validada. A cópia original será baixada antes da exportação.` : 'Não foi possível validar este arquivo. Selecione um config.json compatível.');
     };
     reader.onerror = () => setConfigMessage('Não foi possível ler o arquivo selecionado.');
     reader.readAsText(file);
     event.target.value = '';
   };
 
-  const handleConfigExport = () => {
-    const url = URL.createObjectURL(new Blob([exportPatcherConfig()], { type: 'application/json' }));
+  const downloadJson = (content: string, filename: string) => {
+    const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'config.json';
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-    setConfigMessage('config.json preparado para download. Faça backup do arquivo anterior antes de substituí-lo.');
+  };
+
+  const handleConfigExport = () => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    if (originalConfig) downloadJson(originalConfig, `config.backup-${stamp}.json`);
+    downloadJson(exportPatcherConfig(), 'config.json');
+    setConfigMessage(originalConfig ? 'Backup original e novo config.json preparados para download.' : 'Novo config.json preparado para download. Importe um arquivo antes de exportar para gerar backup automático.');
   };
 
   return (
