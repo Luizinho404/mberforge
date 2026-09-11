@@ -1,21 +1,29 @@
-export type GamePathValidation = { valid: boolean; message: string };
+export type PathValidation = { valid: boolean; message: string };
 
 export function isDesktopApp(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
-export async function chooseGameExecutable(): Promise<string | null> {
+async function chooseExecutable(title: string): Promise<string | null> {
   if (!isDesktopApp()) return null;
   const { open } = await import('@tauri-apps/plugin-dialog');
-  const selected = await open({
-    multiple: false,
-    directory: false,
-    filters: [{ name: 'Enshrouded', extensions: ['exe'] }],
-  });
+  const selected = await open({ multiple: false, directory: false, title, filters: [{ name: 'Executável', extensions: ['exe'] }] });
   return typeof selected === 'string' ? selected : null;
 }
 
-export async function validateGameExecutable(path: string): Promise<GamePathValidation> {
+export const chooseGameExecutable = () => chooseExecutable('Selecione o enshrouded.exe');
+export const choosePatcherExecutable = () => chooseExecutable('Selecione seu patcher externo');
+
+async function invokeValidation(command: string, path: string): Promise<PathValidation> {
   const { invoke } = await import('@tauri-apps/api/core');
-  return invoke<GamePathValidation>('validate_game_executable', { path });
+  return invoke<PathValidation>(command, { path });
+}
+
+export const validateGameExecutable = (path: string) => invokeValidation('validate_game_executable', path);
+export const validatePatcherExecutable = (path: string) => invokeValidation('validate_patcher_executable', path);
+
+export async function isEnshroudedRunning(): Promise<boolean> {
+  if (!isDesktopApp()) return false;
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke<boolean>('is_enshrouded_running');
 }
