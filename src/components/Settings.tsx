@@ -1,7 +1,7 @@
 import { useEmberStore } from '../store';
 import { Card } from './ui/Card';
 import { ChangeEvent, useRef, useState } from 'react';
-import { chooseGameExecutable, choosePatcherExecutable, isDesktopApp, isEnshroudedRunning, validateGameExecutable, validatePatcherExecutable } from '../lib/desktop';
+import { applyPatcher, chooseConfigJson, chooseGameExecutable, choosePatcherExecutable, isDesktopApp, isEnshroudedRunning, validateGameExecutable, validatePatcherExecutable } from '../lib/desktop';
 
 export function Settings() {
   const { settings, updateSettings, resetSettings, wipeProfiles, importPatcherConfig, exportPatcherConfig } = useEmberStore();
@@ -12,6 +12,8 @@ export function Settings() {
   const [patcherPath, setPatcherPath] = useState('');
   const [patcherMessage, setPatcherMessage] = useState('Selecione seu patcher externo.');
   const [preflightMessage, setPreflightMessage] = useState('Aguardando validação.');
+  const [configPath, setConfigPath] = useState('');
+  const [applyMessage, setApplyMessage] = useState('Nenhuma aplicação executada nesta sessão.');
   const [gameMessage, setGameMessage] = useState(isDesktopApp() ? 'Selecione a instalação do Enshrouded.' : 'Disponível no aplicativo Windows.');
 
   const handleReset = () => {
@@ -87,6 +89,21 @@ export function Settings() {
     if (!gamePath || !patcherPath) { setPreflightMessage('Selecione o jogo e o patcher antes de continuar.'); return; }
     const running = await isEnshroudedRunning();
     setPreflightMessage(running ? 'Feche o Enshrouded antes de aplicar o patch.' : 'Pré-verificação concluída: jogo fechado e caminhos validados.');
+  };
+
+  const handleConfigTarget = async () => {
+    if (!isDesktopApp()) { setApplyMessage('Abra o EmberForge para Windows para selecionar o config.json real.'); return; }
+    const selected = await chooseConfigJson();
+    if (selected) { setConfigPath(selected); setApplyMessage('config.json selecionado. Revise e confirme antes de aplicar.'); }
+  };
+
+  const handleApplyPatcher = async () => {
+    if (!gamePath || !patcherPath || !configPath) { setApplyMessage('Selecione jogo, patcher e config.json antes de aplicar.'); return; }
+    if (!window.confirm('O EmberForge criará um backup do config.json, salvará as opções atuais e iniciará o patcher. O jogo deve permanecer fechado. Deseja continuar?')) return;
+    try {
+      const result = await applyPatcher(patcherPath, configPath, exportPatcherConfig());
+      setApplyMessage(result.backup_path ? `${result.message} Backup: ${result.backup_path}` : result.message);
+    } catch { setApplyMessage('Não foi possível iniciar a aplicação do patch.'); }
   };
 
   return (
@@ -187,8 +204,14 @@ export function Settings() {
           </div>
           <p className="text-xs text-[var(--color-on-surface-variant)] mt-4" role="status">{patcherMessage}</p>
           <div className="mt-5 pt-5 border-t border-[var(--color-surface-container-highest)]">
-            <button onClick={handlePreflight} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/20 transition-colors">Verificar antes de aplicar</button>
+            <div className="flex flex-wrap gap-3">
+              <button onClick={handlePreflight} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/20 transition-colors">Verificar antes de aplicar</button>
+              <button onClick={handleConfigTarget} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-surface-container-low)] border border-[var(--color-surface-container-high)] text-white hover:border-[var(--color-primary)]/50 transition-colors">Selecionar config.json</button>
+              <button onClick={handleApplyPatcher} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-110 transition-colors">Aplicar patch</button>
+            </div>
+            {configPath && <code className="block max-w-full truncate mt-3 px-3 py-2 text-xs text-[var(--color-primary)] bg-[var(--color-surface-container-low)] rounded-lg">{configPath}</code>}
             <p className="text-xs text-[var(--color-on-surface-variant)] mt-3" role="status">{preflightMessage}</p>
+            <p className="text-xs text-[var(--color-on-surface-variant)] mt-2" role="status">{applyMessage}</p>
           </div>
         </Card>
 
