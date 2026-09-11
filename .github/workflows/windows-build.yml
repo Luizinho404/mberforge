@@ -20,6 +20,7 @@ jobs:
           node-version: 20
       - run: npm install --legacy-peer-deps
       - uses: dtolnay/rust-toolchain@stable
+      - run: npx tauri icon src-tauri/icons/icon.svg
       - run: npm run desktop:build
       - uses: actions/upload-artifact@v4
         with:
