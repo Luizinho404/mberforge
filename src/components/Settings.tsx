@@ -1,7 +1,7 @@
 import { useEmberStore } from '../store';
 import { Card } from './ui/Card';
 import { ChangeEvent, useRef, useState } from 'react';
-import { chooseGameExecutable, isDesktopApp, validateGameExecutable } from '../lib/desktop';
+import { chooseGameExecutable, choosePatcherExecutable, isDesktopApp, isEnshroudedRunning, validateGameExecutable, validatePatcherExecutable } from '../lib/desktop';
 
 export function Settings() {
   const { settings, updateSettings, resetSettings, wipeProfiles, importPatcherConfig, exportPatcherConfig } = useEmberStore();
@@ -9,6 +9,9 @@ export function Settings() {
   const [configMessage, setConfigMessage] = useState('Nenhum arquivo importado nesta sessão.');
   const [originalConfig, setOriginalConfig] = useState<string | null>(null);
   const [gamePath, setGamePath] = useState('');
+  const [patcherPath, setPatcherPath] = useState('');
+  const [patcherMessage, setPatcherMessage] = useState('Selecione seu patcher externo.');
+  const [preflightMessage, setPreflightMessage] = useState('Aguardando validação.');
   const [gameMessage, setGameMessage] = useState(isDesktopApp() ? 'Selecione a instalação do Enshrouded.' : 'Disponível no aplicativo Windows.');
 
   const handleReset = () => {
@@ -67,6 +70,23 @@ export function Settings() {
     } catch {
       setGameMessage('Não foi possível validar a instalação selecionada.');
     }
+  };
+
+  const handlePatcherSelection = async () => {
+    if (!isDesktopApp()) { setPatcherMessage('Abra o EmberForge para Windows para selecionar o patcher.'); return; }
+    try {
+      const selected = await choosePatcherExecutable();
+      if (!selected) return;
+      setPatcherPath(selected);
+      const result = await validatePatcherExecutable(selected);
+      setPatcherMessage(result.message);
+    } catch { setPatcherMessage('Não foi possível validar o patcher selecionado.'); }
+  };
+
+  const handlePreflight = async () => {
+    if (!gamePath || !patcherPath) { setPreflightMessage('Selecione o jogo e o patcher antes de continuar.'); return; }
+    const running = await isEnshroudedRunning();
+    setPreflightMessage(running ? 'Feche o Enshrouded antes de aplicar o patch.' : 'Pré-verificação concluída: jogo fechado e caminhos validados.');
   };
 
   return (
@@ -151,6 +171,25 @@ export function Settings() {
             {gamePath && <code className="max-w-full truncate px-3 py-2 text-xs text-[var(--color-primary)] bg-[var(--color-surface-container-low)] rounded-lg">{gamePath}</code>}
           </div>
           <p className="text-xs text-[var(--color-on-surface-variant)] mt-4" role="status">{gameMessage}</p>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-lg font-medium text-white mb-2 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[var(--color-tertiary)]">extension</span>
+            Patcher externo
+          </h3>
+          <p className="text-sm text-[var(--color-on-surface-variant)] mb-4">
+            Selecione a cópia do patcher que você já possui. O EmberForge não distribui executáveis de terceiros.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={handlePatcherSelection} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-surface-container-low)] border border-[var(--color-surface-container-high)] text-white hover:border-[var(--color-primary)]/50 transition-colors">Localizar patcher</button>
+            {patcherPath && <code className="max-w-full truncate px-3 py-2 text-xs text-[var(--color-tertiary)] bg-[var(--color-surface-container-low)] rounded-lg">{patcherPath}</code>}
+          </div>
+          <p className="text-xs text-[var(--color-on-surface-variant)] mt-4" role="status">{patcherMessage}</p>
+          <div className="mt-5 pt-5 border-t border-[var(--color-surface-container-highest)]">
+            <button onClick={handlePreflight} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/20 transition-colors">Verificar antes de aplicar</button>
+            <p className="text-xs text-[var(--color-on-surface-variant)] mt-3" role="status">{preflightMessage}</p>
+          </div>
         </Card>
 
         <Card className="p-6">
