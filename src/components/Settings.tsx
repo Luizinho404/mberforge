@@ -1,12 +1,15 @@
 import { useEmberStore } from '../store';
 import { Card } from './ui/Card';
 import { ChangeEvent, useRef, useState } from 'react';
+import { chooseGameExecutable, isDesktopApp, validateGameExecutable } from '../lib/desktop';
 
 export function Settings() {
   const { settings, updateSettings, resetSettings, wipeProfiles, importPatcherConfig, exportPatcherConfig } = useEmberStore();
   const configInputRef = useRef<HTMLInputElement>(null);
   const [configMessage, setConfigMessage] = useState('Nenhum arquivo importado nesta sessão.');
   const [originalConfig, setOriginalConfig] = useState<string | null>(null);
+  const [gamePath, setGamePath] = useState('');
+  const [gameMessage, setGameMessage] = useState(isDesktopApp() ? 'Selecione a instalação do Enshrouded.' : 'Disponível no aplicativo Windows.');
 
   const handleReset = () => {
     if (settings.confirmBeforeApply && !window.confirm('Deseja realmente restaurar as configurações originais?')) return;
@@ -48,6 +51,22 @@ export function Settings() {
     if (originalConfig) downloadJson(originalConfig, `config.backup-${stamp}.json`);
     downloadJson(exportPatcherConfig(), 'config.json');
     setConfigMessage(originalConfig ? 'Backup original e novo config.json preparados para download.' : 'Novo config.json preparado para download. Importe um arquivo antes de exportar para gerar backup automático.');
+  };
+
+  const handleGameSelection = async () => {
+    if (!isDesktopApp()) {
+      setGameMessage('Abra o EmberForge para Windows para selecionar a instalação do jogo.');
+      return;
+    }
+    try {
+      const selected = await chooseGameExecutable();
+      if (!selected) return;
+      setGamePath(selected);
+      const result = await validateGameExecutable(selected);
+      setGameMessage(result.message);
+    } catch {
+      setGameMessage('Não foi possível validar a instalação selecionada.');
+    }
   };
 
   return (
@@ -118,6 +137,21 @@ export function Settings() {
           </div>
         </Card>
 
+
+        <Card className="p-6">
+          <h3 className="text-lg font-medium text-white mb-2 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[var(--color-primary)]">sports_esports</span>
+            Instalação do jogo
+          </h3>
+          <p className="text-sm text-[var(--color-on-surface-variant)] mb-4">
+            Selecione o enshrouded.exe. O EmberForge verifica o arquivo antes de liberar a aplicação do patch.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={handleGameSelection} className="px-4 py-2 rounded-lg text-sm bg-[var(--color-surface-container-low)] border border-[var(--color-surface-container-high)] text-white hover:border-[var(--color-primary)]/50 transition-colors">Localizar Enshrouded</button>
+            {gamePath && <code className="max-w-full truncate px-3 py-2 text-xs text-[var(--color-primary)] bg-[var(--color-surface-container-low)] rounded-lg">{gamePath}</code>}
+          </div>
+          <p className="text-xs text-[var(--color-on-surface-variant)] mt-4" role="status">{gameMessage}</p>
+        </Card>
 
         <Card className="p-6">
           <h3 className="text-lg font-medium text-white mb-2 flex items-center gap-2">
