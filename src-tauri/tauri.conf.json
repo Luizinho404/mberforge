@@ -25,11 +25,8 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "windows": {
-      "nsis": {
-        "installerMode": "currentUser"
-      }
-    }
+    "targets": [
+      "nsis"
+    ]
   }
 }
