@@ -4,12 +4,12 @@ import { GameProfile, AppSettings, ViewState } from './types';
 
 import { defaultPatcherConfig, PatcherSection } from './lib/patcher-schema';
 
-export type PatcherConfig = Record<string, Record<string, Record<string, unknown>>>;
+export type PatcherConfig = Record<string, unknown> & Record<PatcherSection, Record<string, Record<string, unknown>>>;
 const patcherSections: PatcherSection[] = ['player', 'inventory', 'world', 'gameplay'];
 
 function mergePatcherConfig(config: Record<string, unknown>): PatcherConfig {
   const defaults = defaultPatcherConfig() as PatcherConfig;
-  const merged: PatcherConfig = { ...defaults };
+  const merged: PatcherConfig = { ...config, ...defaults } as PatcherConfig;
   for (const section of patcherSections) {
     const imported = config[section];
     if (!imported || typeof imported !== 'object' || Array.isArray(imported)) continue;
@@ -18,7 +18,7 @@ function mergePatcherConfig(config: Record<string, unknown>): PatcherConfig {
       if (value && typeof value === 'object' && !Array.isArray(value)) merged[section][key] = { ...(merged[section][key] ?? {}), ...(value as Record<string, unknown>) };
     }
   }
-  if (config.settings && typeof config.settings === 'object' && !Array.isArray(config.settings)) merged.settings = config.settings as Record<string, Record<string, unknown>>;
+  if (config.settings && typeof config.settings === 'object' && !Array.isArray(config.settings)) merged.settings = config.settings;
   return merged;
 }
 
